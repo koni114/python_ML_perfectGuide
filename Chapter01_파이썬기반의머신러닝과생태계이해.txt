@@ -1,0 +1,254 @@
+## Chapter01_파이썬 기반의 머신러닝과 생태계 이해 ##
+
+01. 머신러닝의 개념.
+데이터마이닝, 영상 인식, 음성 인식, 자연어 처리에서 개발자가 데이터나
+업무 로직의 특성을 직접 감안한 프로그램을 만들 경우
+난이도와 개발 복잡도가 너무 높아질 수 밖에 없는 분야에서 머신러닝이 급속하게
+발전하고 있음.
+
+* 데이터 전쟁
+garbage in, garbage out. 
+즉, 데이터의 질이 좋지 않으면, 결과도 좋을 수 없음.
+머신러닝은 데이터에 매우 의존적.
+
+* R vs Python
+R : 통계학자들이 검증한 방대한 통계 분석 패키지 존재.
+Python : 소리없이 프로그래밍 세계를 점령하고 있는 언어.
+- 쉽고 뛰어난 개발 생산성
+- 오픈 소스 계열의 전폭적인 지지를 받고 있음
+- 인터프리터 언어의 특성상 속도는 느림. 대신에 뛰어난 확장성. 유연성. 호환성.
+- 머신러닝 애플리케이션과 결합한 다양한 영역에서 이용
+- 엔터프라이즈 아키텍처로의 확장 및 마이크로서비스 기반의 실시간 연계.
+  기업환경으로의 확산이 가능.
+- ** 딥러닝 프레임워크인 텐서플로, 케라스, 파이토치 등에서 파이썬 우선 정책으로
+   파이썬을 지원하고 있음
+
+02. 파이썬 머신러닝 생태계를 구성하는 주요 패키지.
+- 머신러닝 패키지: Scikit-Learn
+- 행렬/선형대수/통계 패키지 : numpy
+- 데이터 핸들링 : Matplotlib
+- 시각화 : Matplotlib, Seaborn
+
+**  Anaconda
+Anaconda를 설치하면 기본적으로, 넘파이, 판다스, 맷플롯립, 시본, 주피터노트북까지
+함께 설치됨
+Anaconda prompt : Anaconda를 이용해 패키지를 설치할 때 사용
+		 관리자 권한으로 실행해야함.
+
+03. 넘파이
+Numerical Python을 의미하는 넘파이로써
+선형대수 기반의 프로그램을 쉽게 만들 수 있도록 지원하는 대표적인 패키지.
+루프를 사용하지 않고 대량 데이터의 배열 연산을 가능케 함.
+-> 빠른 배열 연산 속도를 보장
+C/C++과 같은 저수준 언어 기반의 호환 API를 제공
+많은 파이썬 기반의 패키지가 넘파이를 이용해 데이터 처리를 수행하지만,
+편의성과 다양한 API 지원 측면에서 아쉬운 부분이 많음.
+판다스의 편리성에는 미치지 못하는 것이 현실.
+
+넘파이를 이해하는 것은 파이썬 기반의 머신러닝에서 매우 중요!
+
+* 넘파이 개요
+import numpy as np
+
+넘파이 기반 데이터 타입 : ndarray.
+해당 함수를 이용해 넘파이에서 다차원 배열을 쉽게 생성하고 다양한 연산 수행 가능
+array()는 파이썬의 리스트 같은 다양한 인자를 입력 받아,
+ndarray()로 변환하는 기능을 수행.
+
+ndarray의 shape 변수는 ndarray의 크기, 행과 열의 수를 튜플 형태로 가지고 있음
+
+array1 = np.array([1, 2, 3])
+print('array 1 type :', type(array1))
+print('array1 형태:', array1.shape)
+
+array2 = np.array([[1,2,3], [4,5,6]])
+print('array 2 type :', type(array2))
+print('array2 형태:', array2.shape)
+
+array3 = np.array([[1, 2, 3]])
+print('array3 type :', type(array3))
+print('array3 array 형태:', array3.shape) --> (1, 3) : 명확한 차원을 확인하기 위함! 
+
+array의 차원을 ndarray.ndim 을 이용해 확인 가능.
+print('array1 : {:0}차원, array2 : {:1}차원, array3 : {:2}차원'.format(array1.ndim, array2.ndim, array3.ndim))
+
+ndarray 내의 데이터 값은 숫자 값, 문자열 값, 불 값 모두 가능.
+숫자형의 경우, int형(8, 16, 32bit)
+	       unsigned int형(8 ,16, 32bit)
+	       float형(16bit, 32bit, 64bit, 128bit)
+
+ndarray에 다른 형의 데이터는 불가능.
+ndarray.dtype 속성으로 확인 가능.
+데이터의 형이 다른 list를 ndarray로 변경하였을 경우, 더 큰 데이터 타입으로 형 변환을 일괄 적용.
+
+ndarray 내 데이터 값의 타입 변경도 astype() 메서드를 이용해 할 수 있음.
+해당 함수를 이용하면, 많은 메모리를 사용하는 경우를 막을 수 있음
+메모리를 더 절약해야 할 때 보통 이용
+
+파이썬 기반 머신러닝 알고리즘은 대부분 메모리로 데이터를 전체 로딩한 후,
+이를 기반으로 알고리즘을 적용하기 때문에 대용량의 데이터를 로딩할 때는 수행속도가 느려지거나
+메모리 부족으로 오류가 발생할 수 있음.
+
+array_int = np.array([1,2,3])
+array_float = array_int.astype('float64')
+print(array_float, array_float.dtype)
+
+array_int1 = array_float.astype('int32')
+print(array_int1, array_int1.dtype)
+
+array_float1 = np.array([1.1, 2.1, 3.1])
+array_int2   = array_float1.astype('int32')
+print(array_int2, array_int2.dtype)
+
+** ndarray를 편라하게 생성하기 - arrange, zeros, ones
+특정 크기와 차원을 가진 ndarray를 연속값이나 0, 1로 초기화해 쉽게 생성해야 할 필요가 있는
+경우가 발생할 수 있음.
+이 경우, arrange(), zeros(), ones()를 이용해 쉽게 ndarray를 생성 할 수 있음.
+
+# arange -> range 함수와 거의 유사.
+sequnce_array = np.arange(10)
+print(sequence_array) -> 0 ~ 9까지 값.
+print(sequence_array.dtype, sequence_array.shape)
+
+# zeros -> 모든 값을 0으로 채운 해당 shape를 가진 ndarray를 반환.
+# ones  -> 모든 값을 1로 채운 해당 shape를 가진 ndarray로 반환.
+dtype을 정해주지 않으면, float64 형의 데이터로 ndarray로 채움.
+zero_array = np.zeros((3, 2), dtype = 'int32')
+print(zero_array)
+print(zero_array.dtype, zero_array.shape)
+
+one_array = np.ones((3, 2))
+print(one_array)
+print(one_array.dtype, one_array.shape)
+
+# ndarray의 차원과 크기를 변경하는 reshape()
+array1 = np.arange(10)
+print('array1:\n' ,array1)
+
+array2 = np.reshape(2, 5)
+print('array2:\n' ,array2)
+
+
+array3 = np.reshape(5, 2)
+print('array3:\n' ,array3)
+
+reshape()의 인자로 -1를 적용하는 경우, 자동으로 크기에 맞게 reshape 해줌.
+array1.reshape(-1, 5)
+array1.reshape(5, -1)
+
+-1 인자는 주로 reshape(-1, 1)과 같은 형태로 자주 사용.
+-> 컬럼이 한개고 n개의 row를 가지는 2차원 형태로 변경하고 싶을 때,
+
+** 넘파이의 ndarray의 데이터 세트 선택 - 인덱싱(indexing)
+- 특정한 데이터만 추출 : 원하는 위치의 인덱스 값을 지정
+- 슬라이싱(slicing) : 연속된 인덱스 상의 ndarray를 추출하는 방식.
+- 팬시 인덱싱(fancy indexing) : 일정한 인덱싱 집합을 리스트 또는 ndarray 형태로 지정해 해당 데이터의 ndarray를 반환
+- 불린 인덱싱(boolean indexing) : 특정 조건에 해당하는 여부인 True/False 값 인덱싱 집합을 기반으로
+                                             True에 있는 인덱스 위치에 있는 데이터 ndarray 반환
+
+# 특정 데이터 추출
+array1[3] 하면, 더이상 ndarray 형식이 아니라, 내부 형으로 바뀜 ex) float64
+-1, -2는 뒤에서 부터 인덱싱 하겠다는 의미.
+2차원에서 axis 0 : row, axis 1 : column을 지칭.
+
+# 슬라이싱
+:를 이용하여 슬라이싱 가능.
+규칙은 기존 python에서의 슬라이싱과 동일.
+2차원 뒤에 오는 인덱스를 없애면 1차원 ndarray를 반환.
+
+# 팬시 인덱싱
+ex) array2d[[0, 1], 0:2]
+
+# 불린 인덱싱
+조건 필터링과 검색을 동시에 할 수 있기 때문에 매우 자주 사용되는 인덱싱 방식.
+
+array1d = np.arange(1, 10)
+array3   = array1d[array1d > 5]
+print("array3 : ", array3 )
+
+# 행렬의 정렬 sort(), argsort()
+넘파이에서 행렬을 대표하는 방법 np.sort(), nparray.sort()
+정렬된 행렬의 인덱스를 반환 argsort()
+
+np.sort() : 원 행렬은 그대로 유지, 정렬된 행렬을 반환
+ndarray.sort() : 원 행렬 자체를 정렬한 형태로 반환. return 값은 None
+
+org_array =  np.array([3, 1, 9, 5])
+print('원본 행렬 :', org_array)
+sort_array1 = np.sort(org_array)
+내림차순 정렬시 [::-1] 이용.
+
+행렬이 2차원 이상인 경우에 axis 축 값 설정을 통해 로우 방향, 또는 컬럼 방향으로 정렬을
+수행할 수 있음.
+
+array2d = np.array([8, 12], [7, 1])
+sort_array2d_axis0 = np.sort(array2d, axis = 0)
+print("sort_array2d_axis0 :", sort_array2d_axis0)
+
+sort_array2d_axis1 = np.sort(array2d, axis = 1)
+print("sort_array2d_axis1  :", sort_array2d_axis1)
+
+정렬된 행렬의 인덱스 반환
+np.argsort() : 정렬 행렬의 원본 행렬 인덱스를 ndarray 형으로 반환
+
+argsort()는 넘파이에서 활용도가 높음.
+넘파이의 ndarray는 RDBMS의 TABLE 컬럼이나 
+판다스의 dataframe 칼럼과 같은 메타 데이터를 가질 수 없음.
+즉, 실제 값과 그 메타 데이터를 각각 ndarray로 가져야 함. 
+
+** 선형 대수 연산 - 행렬 내적과 전치 행렬 구하기
+# 행렬 내적(dot)
+A와 B의 내적은 np.dot()을 이용해 계산이 가능.
+
+A = np.array([[1,2,3],[4,5,6]])
+B = np.array([[7, 8], [9, 10], [11, 12]])
+dot_product = np.dot(A, B)
+
+# 전치 행렬(transpose)
+행과 열 위치를 교환한 원소로 구성한 행렬.
+np.transpose()를 이용
+
+04. 데이터 핸들링 - 판다스
+판다스는 파이썬에 데이터 처리를 위해 존재하는 가장 인기있는 라이브러리
+일반적으로 대부분의 데이터 세트는 2차원 데이터
+판다스는 행과 열로 이뤄진 2차원 데이터를 효율적으로 가공/처리할 수 있는 다양하고 훌륭한 기능 제공
+
+넘파이의 2차원 데이터를 다루는 수준은 어렵. 
+저수준 API가 대부분.
+파이썬의 리스트, 컬렉션, 넘파이 등의 내부 데이터 뿐만 아니라 CSV 등의 파일을 쉽게 DataFrame으로
+변경해 데이터의 가공/분석을 편리하게 수행할 수 있게 만들어줌.
+
+판다스의 핵심 객체는 DataFrame
+다른 객체인 Index, Series를 이해하는 것도 중요.
+
+Series 와 DataFrame의 가장 큰 차이는,
+Series는 컬럼이 1개, DataFrame은 여러개.
+
+import pandas as pd
+판다스는 다양한 포멧으로 된 파일을 DataFrame으로 로딩할 수 있는 편리한 API를 제공.
+
+pd.read_csv() 는 호출 시 파일명 인자로 들어온 파일을 로딩해 DataFrame 객체로 반환
+데이터 파일의 첫 번째 줄에 있던 칼럼 문자열이 DataFrame의 칼럼으로 할당.
+모든 DataFrame 내에 데이터는 생성되는 순간 고유의 Index를 가지게 됨.
+
+df1.shape 를 이용해 객체 수를 확인!
+컬럼의 타입, Null 데이터 개수, 데이터 분포도 등의 메타 데이터 등도 조회가 가능
+df1.info()
+object type은 문자열로 생각해도 무방.
+non-null 옆에 숫자는 말 그대로 non-null의 개수를 보여줌. 나머지 개수는 null 이라고 생각하면 됨.
+
+df1.describe()
+칼럼별 숫자형 데이터값의 n-percentile 분포도, 평균값, 최댓값, 최솟값을 나타냄.
+오직 숫자형 칼럼의 분포도만 조사. 자동으로 object 타입의 컬럼은 출력에서 제외
+ 	
+
+
+
+
+
+
+
+
+
+
+

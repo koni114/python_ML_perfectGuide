@@ -1,0 +1,154 @@
+## Chapter02_사이킷런으로 시작하는 머신러닝 ##
+사이킷런은 머신러닝 라이브러리 중 가장 많이 사용함.
+
+* 사이킷런의 특징
+- 파이썬 기반의 다른 머신러닝 패키지도 사이킷런 스타일의 API를 지향할 정도로 쉽고 
+  가장 파이썬스러운 API를 제공
+- 머신러닝을 위한 매우 다양한 알고리즘과 개발을 위한 편리한 프레임워크와 API를 제공
+- 많이 검증되었으며, 매우 많은 환경에서 사용되는 성숙한 라이브러리
+
+conda, pip 명령어를 이용하여 scikit-learn 설치 가능.
+보통 conda를 권장. why? dependency 걸려있는 패키지를 한꺼번에 설치해줌.
+
+conda install scikit-learn
+pip install scikit-learn
+
+## -------------------------------------- ## 
+
+02. 첫 번째 머신러닝 만들어보기 - 붓꽃 품종 예측하기
+
+사이킷런 패키지 내에 모듈명은 sklearn으로 시작하는 명명규칙이 있음
+sklearn.datasets 내의 모듈  : 사이킷런 자체적으로 제공하는 데이터 세트를 생성하는 모듈의 모임
+sklearn.tree 내의 모듈        : 트리 기반 ML 알고리즘 구현한 클래스 모임
+sklearn.model_selection     : 학습 데이터와 검증 데이터, 예측 데이터로 데이터를 분리하거나 
+                                      최적의 하이퍼 파라미터로 평가하기 위한 다양한 모듈의 모임 
+
+* train_test_split()
+Train/Test Dataset 분리 -> train_test_split() 함수 사용
+학습 데이터와 테스트 데이터를 test_size 파라미터 입력 값의 비율로 쉽게 분할
+
+random_state : seed 개념과 동일
+X_train, X_test, y_train, y_test = train_test_split(iris_data, iris_label, test_size = 0.2, random_state = 11)
+
+* accuracy_score()
+사이킷런은 정확도 측정을 위해 사용
+
+# 정확도 예측
+from sklearn.metrics import accuracy_score
+print('예측 정확도: {0: 4f}'.format(accuracy_score(y_test, pred)))
+
+## ------------------------------------------------------- ## 
+
+03. 사이킷런의 기반 프레임워크 익히기
+사이킷런에서 모델 학습을 위해 fit(), 예측을 위해 predict() 메서드 제공
+분류 알고리즘을 구현한 클래스를 Classifier,
+회귀 알고리즘을 구현한 클래스를 Regressor로 지칭.
+
+사이킷런은 매우 많은 Classifier, Regressor 클래스를 제공하는데,
+이를 통칭해서 Estimator라고 부름
+
+cross_val_score()와 같은 evaluation 함수, GridSearchCV와 같은 하이퍼 파라미터 튜닝을
+지원하는 클래스의 경우 Estimator를 인자로 받음
+
+인자로 받은 Estimator에 대해서 cross_val_score(), GridSearchCV.fit() 함수 내에서
+Estimator의 fit()과 predict()를 호출해서 평가를 하거나 하이퍼 파라미터 튜닝을 수행하는 것.
+
+사이킷런에서 비지도학습인 클러스터링, 피처 추출 등을 구현한 클래스 역시
+대부분 fit, transform을 적용함
+
+비지도 학습에서의 fit은 지도 학습에서 fit과는 달리
+입력 데이터의 형태에 맞춰 데이터를 변환하기 위한 사전 구조를 맞추는 작업
+
+fit함수를 통해 사전 구조를 맞추면 transform 함수를 통해 클러스터링, 피처 추출등을 수행
+
+** 사이킷런의 주요 모듈
+sklearn.datasets             : 사이킷런에 내장되어 예제로 제공하는 데이터 세트
+sklearn.preprocessing     : 데이터 전처리에 필요한 다양한 가공 기능 제공(문자열을 숫자형 코드 값으로 인코딩, 정규화, 스케일링 등)
+sklearn.feature_selection : 알고리즘에 큰 영향을 미치는 피처를 우선순위대로 셀렉션 작업을 수행하는 다양한 기능 제공
+sklearn.feature_extraction : 텍스트 데이터나 이미지 데이터의 벡터화된 피처를 추출하는데 사용됨
+		          예를 들어 텍스트 데이터에서 Count Vectorizer나 Tf-Idf Vectorizer 등을 생성하는 기능 제공
+		          텍스트 데이터의 피처 추출은 sklearn.feature_extraction.text
+                                   이미지 데이터 피처 추출은 sklearn.feature_extraction.image 에 있음.
+sklearn.decomposition    : 차원 축소와 관련한 알고리즘을 지원하는 모듈
+		          PCA, NMF, Truncated SVD 등을 통해 차원 축소 기능을 수행할 수 있음
+sklearn.model_selection  :  교차 검증을 위한 학습용/테스트용 분리, 그리드 서치로 최적 파라미터 추출 등의 API 제공
+sklearn.metrics              : 분류, 회귀, 클러스터링, 페어와이즈(Pairwise)에 대한 다양한 성능 측정 방법 제공
+		         Accuracy, Precision, Recall, ROC-AUC, RMSE 등 제공
+sklearn.ensemble           : 앙상블 알고리즘 제공
+		          랜덤 포레스트, 에이다 부스트, 그래디언트 부스팅 등을 제공
+sklearn.linear_model       :  Ridge, Lasso, 로지스틱 회귀 등 회귀 관련 알고리즘 지원, SGD 관련 알고리즘도 제공
+sklearn.naive_bayes        :  나이브 베이즈 알고리즘 제공. 가우시안 NB, 다항 분포 NB 등
+sklearn.neighbors          :  최근접 이웃 알고리즘 제공. K-NN 등
+sklearn.svm                  :  서포트 벡터 머신 알고리즘 제공
+sklearn.tree                  : 의사 결정 트리 알고리즘 제공
+sklearn.cluster               : 비지도 클러스터링 알고리즘
+sklearn.pipeline             : 피처 처리 등의 변환과 ML 알고리즘 학습, 예측 등을 함께 묶어 실행할 수 있는 유틸리티 제공
+
+** 내장된 예제 데이터 세트
+사이킷런에는 많은 내장 예제 데이터셋이 존재.
+
+* 표본 데이터 생성기
+datasets.make_classifications() : 분류를 위한 데이터 세트를 만듬. 높은 상관도, 불필요한 속성 등의 노이즈 효과를 위한 데이터를 무작위로 생성해 줌
+datasets.make_blobs()           : 클러스터링을 위한 데이터 세트를 무작위로 생성해 줌. 군집 지정 개수에 따라 여러 가지 클러스터링을 위한 데이터 세트를 쉽게 만들어 줌
+
+사이킷런에 내장된 데이터 세트는 일반적으로 딕셔너리 형태
+키는 보통 data, target, target_name, feature_names, DESCR 로 구성되어 있음
+
+data              : 피처의 데이터 세트를 가리킴
+target            : 레이블 값, 회귀일 경우네는 결괏값 데이터 세트
+target_names  : 개별 레이블의 이름을 나타냄
+feature_names : 피처의 이름
+DESCR            : 데이터 세트에 대한 설명과 피처의 설명
+
+data, target은 넘파이 배열(ndarray) 타입
+target_names, featrue_names는 넘파이 배열 또는 스트링 타입
+DESCR는 문자열
+
+test = load_iris()
+test.keys()
+
+## ------------------------------------------------------- ## 
+
+04. Model Selection 모듈 소개
+학습 데이터와 테스트 데이터 세트를 분리하거나 교차 검증 분할 및 평가, Estimator 하이퍼 파라미터를 튜닝하기 위한
+다양한 함수와 클래스를 제공
+
+** train_test_split()
+test_size : 전체 데이터에서 테스트 데이터 세트 크기를 얼마로 샘플링 할 것인가? 디폴트 : 0.25%
+train_size : 전체 데이터에서 학습용 데이터 세트 크기를 얼마로 샘플링 할 것인가?
+shuffle    : 데이터를 분리하기 전 데이터를 미리 섞을지를 결정. 디폴트는 True. 
+random_state : seed
+
+** 교차 검증 
+* K-Fold
+kfold = KFold(n_split = 5)
+
+kfold 객체를 만들고 나면, split 함수에 data 인자를 집어넣어 split된 데이터의 인덱스를 반환 받음.
+
+* StratifiedKFold 
+imblanced 한 data의 성능 향상에 도움.
+
+skf = StratifiedKFold(n_split = 3)
+skf.split(iris_df, iris_df['label']) 사용!
+
+* cross_val_score
+교차 검증을 좀 더 편리하게 수행할 수 있게 해주는 API 제공
+
+# X : 피처 데이터 세트
+# y : 레이블 데이터 세트
+# scoring : 성능 평가 지표
+# cv : 교차 검증 수
+cross_val_score(estimator
+                , X
+                , y = None
+                , scoring = None
+                , cv = None
+                , n_jobs = 1
+                , verbose = 0
+                , fit_params = None
+                , pre_dispatch = '2*n_jobs'
+               )
+
+수행 후 반환 값은 scoring 파라미터로 지정된 성능 지표 측정 값을 배열 형태로 반환
+estimator 가 classifier 가 입력되면 Stritified K 폴드 방식으로 레이블값의 분포에 따라 학습/테스트 데이터 세트를 분할
+

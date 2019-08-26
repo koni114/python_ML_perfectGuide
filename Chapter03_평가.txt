@@ -9,12 +9,15 @@
 - F1 Score
 - ROC CURVE
 
+## ------------------------------------------- ##
+
 ** 01. 정확도(accuracy)
 
 정확도(accuracy) = 예측 결과가 동일한 데이터 건수 // 전체 예측 데이터 건수
 	          =  (TN + TP) / (TN + FP + FN + TP)
 * 정확도는 imblanced 한 데이터에서는 적합한 지표가 될 수 없음.
 
+## ------------------------------------------- ##
 
 ** 02. 오차 행렬(confusion Matrix)
 4분면 행렬에서 실제 레이블 클래스 값과 예측 레이블 클래스 값이 일치하는지를 확인해줌.
@@ -38,6 +41,8 @@ confusion_matrix(y_test, pred)
 
 불균형한 이진 분류 데이터 세트에서는 Positive 데이터 건수가 매우 작기 때문에
 데이터에 기반한 ML 알고리즘은 Positive 보다는 Negative로 예측 정확도가 높아지는 경향이 발생.
+
+## ------------------------------------------- ##
 
 ** 03. 정밀도와 재현율
 정밀도와 재현율은 Positive 값에 좀 더 초점을 맞춘 평가 지표
@@ -104,6 +109,190 @@ Binarizer class의 fit_transform() 메서드를 이용해 넘파이 ndarray를 �
 정밀도 및 재현율 값을 담은 넘파이 ndarray 를 반환
 
 반환되는 임곗값이 너무 많으므로, 15단계로 추출해 그때의 정밀도와 재현율 값을 같이 살펴보자
+
+""" example """
+# 샘플로 10건만 추출, 임곗값을 15 단계로 추출해 좀 더 큰 값이 임곗값과 그 때의 정밀도와 재현율 값을 같이 살펴보기
+from sklearn.metrics import precision_recall_curve
+
+# 레이블 값이 1일 때의 예측 확률을 추출
+pred_proba_class1 = lr_clf.predict_proba(X_test)[:, 1]
+
+# 실제 값 데이터 세트와 레이블 값이 1일 때의 예측 확률을 precision_recall_curve 인자로 입력
+precisions, recalls, thresholds = precision_recall_curve(y_test, pred_proba_class1)
+print('반환된 분류 결정 임곗값 배열 shape :', thresholds.shape)
+
+# 반환된 입계값 배열 로우가 147건이므로 샘플로 10건만 추출하되, 임곗값을 15 Step(간격)으로 추출
+the_index = np.arange(1, thresholds.shape[0], 15)
+print('샘플 추출을 위한 임곗값 배열 :', the_index)
+print('샘플용 10개의 임곗값 :', thresholds[the_index])
+
+# 15 step 단위로 추출된 임곗값에 따른 정밀도와 재현율 값
+print('샘플 임곗값별 정밀도 :', np.round(precisions[the_index], 3))
+print('샘플 임곗값별 재현율 :', np.round(recalls[the_index], 3)) 
+""" """
+--> 추출된 임곗값 샘플 10개에 해당되는 정밀도 값과 재현율 값을 살펴보면 임곗값이 증가할수록 재현율은 감소하고 정밀도는 높아짐
+ 
+재현율과 정밀도를 시각화하기
+
+# 해당 정밀도와 재현율을 곡선으로 시각화 하기
+
+""" example """
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+%matplotlib inline
+
+def precision_recall_curve_plot(y_test, pred_proba_c1):
+    precisions, recalls, thresholds = precision_recall_curve(y_test, pred_proba_class1)
+    
+    #  X축을 threshold 값으로, Y축은 정밀도, 재현율 값으로 각각 plot 수행.
+    # 정밀도는 점선으로 표시!
+    
+    plt.figure(figsize = (8, 6))
+    threshold_boundary = thresholds.shape[0]
+    
+    plt.plot(thresholds, precisions[0:threshold_boundary], linestyle= '--', label = 'precision')
+    plt.plot(thresholds, recalls[0:threshold_boundary], label = 'recall')
+    
+    # threshold 값 X 축의 Scale을 0.1 단위로 변경.
+    start, end = plt.xlim()
+    plt.xticks(np.round(np.arange(start, end, 0.1), 2))
+    
+    # x축, y축 label과 legend, 그리고 grid 설정
+    plt.xlabel('Threshold value'); plt.ylabel('Precision and Recall value')
+    plt.legend(); plt.grid()
+    plt.show()
+    
+precision_recall_curve_plot(y_test, pred_proba_class1)
+""" """
+
+** 정밀도와 재현율의 맹점
+
+정밀도가 100%가 되는 방법 : 확실한 경우에만 P로 예측 -> FP 가 0이 되므로, 
+재현율이 100%가 되는 방법 : 전부 positive로 예측        -> FN 가 0이 됨
+
+즉, 정밀도와 재현율중 한 값만 참조하면 극단적인 수치 조작이 가능
+어느 상황에서나 정밀도, 재현율 중 중요한 측정 값이 있을 수 있지만, 두 측정 값 중 한개만 사용하는 것은 위험
+
+## ------------------------------------------- ##
+
+04. F1 스코어
+정확도와 재현율을 결합한 지표
+정밀도와 재현율이 어느 한 쪽으로 치우치지 않는 수치를 나타낼 때 상대적으로 높은 값을 가짐
+
+F1 = 2 / (( 1 / recall ) + (1 / precision) )
+    = 2 * precision * recall / (precision + recall)
+
+ex) precision : 0.9, recall : 0.1 일 경우, F1 Score : 0.18
+    precision  : 0.5, recall : 0.5 일 경우, F1 Score : 0.5
+
+사이킷런은 F1 스코어를 구하기 위해 f1_score() 라는 API 제공
+
+""" example """
+from sklearn.metrics import f1_score
+f1 = f1_score(y_test, pred)
+print('f1 스코어: {0:.4f}'.format(f1))
+"""             """
+
+## ------------------------------------------- ##
+
+05. ROC 곡선과 AUC
+ROC 곡선과 AUC 스코어는 이진 분류의 예측 성능 측정에서 중요하게 사용되는 지표
+ROC 곡선은 FPR(False Positive Rate)이 변할 때 TPR이 어떻게 변하는지를 나타내는 곡선
+FPR을 X 축으로, TPR을 Y 축으로 잡으면 FPR의 변화에 따른 TPR의 변화가 곡선 형태로 나타남
+
+TPR은 True Positive Rate의 약자이며, 재현율을 나타냄. ( = 민감도)
+TPR에 대응하는 지표로, TNR(True Negative Rate)이라고 불리는 '특이성'이 있음
+
+민감도(TPR)은 실제값   Positive가 정확히 예측돼야 하는 수준을 나타냄
+특이성(TNR)은 실제값 Negative가 정확히 예측돼야 하는 수준을 나타냄
+
+TNR은 TN / (FP + TN) .
+FPR은 FP  / (FP + TN) 이므로, 1 - TNR 
+
+FPR를 0부터 1까지 어떻게 변경?
+임곗값을 변경하면 됨! 분류 결정 임곗값은 Positive 예측 값을 결정하는 확률의 기준이기 때문에 FPR을 0을 만드려면 임곗값을 1로 지정하면 됨
+임곗값을 1로 가정하면, Positive 예측 기준이 매우 높기 때문에 분류기가 임곗값보다 높은 확률을 가진 데이터를 Positive로 예측할 수 없기 때문
+
+* FPR을 0으로 만드는 방법 -> 임곗값을 1로 setting
+FPR = FP / (FP + TN) 이므로, FP = 0, FPR = 0
+
+* FPR을 1으로 만드는 방법 -> 임곗값을 0로 setting
+무조건 positive 이므로, TN = 0, FPR = 1
+
+즉, ROC CURVE는 임곗값을 1부터 0까지 거꾸로 변화시키면서 구한 재현율 곡선의 형태와 비슷! ** ( 이것만이라도 기억)
+
+사이킷런은 ROC 곡선을 구하기 위해 roc_curve() API 제공
+
+* roc_curve
+"""
+from sklearn.metrics import roc_curve
+roc_curve(
+    y_true  # 실제 Class 값.
+    y_score # predict_prob의 반환 값 array에서 Positive 컬럼의 예측 확률
+)
+"""
+output
+- fpr : FPR
+- tpr : TPR
+- thresholds : 임곗값
+
+## LogisticRegression 객체의 predict-proba() 결과를 다시 이용해, curve() 결과 도출.
+## ROC 곡선 시각화
+
+## LogisticRegression 객체의 predict-proba() 결과를 다시 이용해, curve() 결과 도출.
+## ROC 곡선 시각화
+
+"""
+from sklearn.metrics import roc_curve
+pred_proba_class1 =lr_clf.predict_proba(X_test)[:, 1]
+
+fprs, tprs, thresholds = roc_curve(y_test, pred_proba_class1)
+
+def roc_curve_plot(y_test, pred_proba_c1):
+    fprs, tprs, thresholds = roc_curve(y_test, pred_proba_c1)
+    
+    # ROC 곡선을 그래프 곡선으로 그림
+    plt.plot(fprs, tprs, label = 'Roc Curves')
+    
+    # 가운데 직선을 그림
+    plt.plot([0, 1], [0, 1],'k--', label = 'Random')
+    
+    # FPR X 축의 Scale을 0, 1 단위로 변경. X, Y축 명 설정 등
+    start, end = plt.xlim()
+    plt.xticks(np.round(np.arange(start, end, 0.1), 2))
+    plt.xlim(0, 1); plt.ylim(0, 1)
+    plt.xlabel('FPR(1 - Sensitivity)'); plt.ylabel('TPR( Recall )')
+    plt.legend(
+)
+   
+roc_curve_plot(y_test, pred_proba_class1)
+"""
+
+* AUC(Area Under Curve)
+ROC 곡선 자체는 FPR, TPR의 변화 값을 보는데 사용하며, 실제로 성능 지표로 사용되는 것은
+AUC(Area under curve) 값
+-> 1에 가까울수록 좋은 값. why? 어떤 임곗값이라도 재현율이 높다는 의미이므로
+    완전 random이면 0.5
+
+사이킷런은 AUC를 구하기 위해 roc_auc_score() API를 제공
+
+from sklrean.metrics import roc_auc_curve
+pred = lr_clf.predict(X_test)
+roc_score = roc_auc_curve(y_test, pred)
+print('ROC AUC 값 : {0:.4f}'.format(roc_score))
+
+## ------------------------------------------- ##
+피마 인디언 당뇨병 예측
+- 로지스틱 회귀는 기본적으로 스케일링을 적용하는 것이 좋음
+
+
+
+
+
+
+
+
+
 
 
 

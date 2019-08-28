@@ -91,8 +91,9 @@ DecisionTreeRegressor : 회귀를 위한 클래스
 		   과적합을 제어하는 데 사용
 		   default : 2, 작게 설정할수록 노드가 많아져서 과적합 가능성 증가
 		   과적합을 제어. 1로 설정할 경우 노드가 많아져서 과적합 증가
+		   ex) 4로 setting하면, 해당 노드의 데이터 샘플 개수가 4개 이하면 더이상 분기 하지 않음
 
-- min_samples_leaf : 말단 노드(Leaf)가 되기 위한 최소한의 샘플 데이터 수
+- min_samples_leaf : 말단 노드(Leaf)가 되기 위한 최소한의 샘플 데이터 수(당연히 완전 분류가 된 노드는 최소한의 샘플 데이터 수보다 커도 리프 노드가 됨)
 		  Min_samples_split과 유사하게 과적합 제어 용도. 비대칭적 데이터의 경우 특정 클래스의 데이터가 극도로 작을 수 있으므로,
 	  	  이 경우는 작게 설정 필요
 
@@ -116,6 +117,499 @@ Graphviz 패키지를 사용 : 그래프 기반의 dot 파일로 기술된 다�
 
 Graphviz 는 파이썬으로 개발된 패키지가 아닌, C++로 운영 체제에 포팅된 패키지 이므로, 이를 파이썬 기반의 모듈과 인터페이스해주기 위해서는 Graphviz를 설치한 뒤
 파이썬과 인터페이스할 수 있는 파이썬 래퍼(Wrapper) 모듈을 별도로 설치
+
+설치 방법
+윈도우 버전의 graphviz 설치
+https://graphviz.gitlab.io/_pages/Download/Download_windows.html 접속
+
+윈도우 버전 설치 후, Graphviz의 파이썬 래퍼 모듈을 PIP를 이용해 설치
+- pip install graphviz
+
+Graphviz와 그 파이썬 래퍼를 연결하려면 추가적인 환경 설정이 필요
+
+사용자 변수 : C:\Program Files (x86)\Graphviz2.38\bin 설정
+시스템 변수 : C:\Program Files (x86)\Graphviz2.38\bin\dot.exe 설정
+
+# 설치가 완료된 Graphviz를 이용해 붓꽃 데이터 세트에 결정 트리를 적용할 때 어떻게 서브 트리가 구성되고 만들어지는지 시각화 해보기
+
+export_graphviz( ) 함수 제공
+export_graphviz( ) Graphviz가 읽어 들여서 그래프 형태로 시각화할 수 있는 출력 파일을 생성함
+export_graphviz에 인자로 학습이 완료된 estimator, output 파일 명, 결정 클래스의 명칭, 피처의 명칭을 입력해주면 됨
+
+"""
+from sklearn.tree import export_graphviz
+export_graphviz(dt_clf, out_file = 'Tree.dot'
+                , class_names = iris_data.target_names
+                , feature_names = iris_data.feature_names
+                , impurity = True
+                , filled   = True)
+
+import graphviz
+with open('tree.dot') as f:
+    dot_graph = f.read()
+graphviz.Source(dot_graph)
+
+"""
+
+더이상 자식 노드가 없는 노드를 '리프 노드'라고 함
+* 리프 노드
+리프 노드는 최종 클래스(레이블) 값이 결정 되는 노드거나, 하이퍼 파라미터(min_limit 등) 가 충족되는 노드
+
+* 브랜치 노드
+자식노드가 있는 노드
+자식 노드를 만들기 위한 분할 규칙 조건을 가지고 있음.
+- petal length(cm) < = 2.45와 같이 피처의 조건이 있는 것은 자식 노드를 만들기 위한 규칙 조건. 이 조건이 없으면 리프 노드
+- gini는 value = [] 로 이루어진 데이터 분포에서의 지니 계수
+- samples는 현 규칙에 해당하는 데이터 건수
+- value = []는 클래스 값 기반의 데이터 건수. 붓꽃 데이터 세트는 클래스 값으로 0, 1, 2를 가지고 있으며, 0 : Setosa, 1: Versicolor, 2: Virginica 품종을 가리킴
+	만일 Value = [41, 40, 39]라면 클래스 값의 순서로 Setosa 41개, Vesicolor 40개, Virginica 39개로 데이터가 구성돼 있다는 의미
+- class = setosa 의미 : 자식 노드를 가질 경우에 setosa 가 가장 많다는 의미
+
+각 노드의 색깔은 데이터의 레이블 값을 의미
+색깔이 짙어질수록 지니 계수가 낮고 해당 레이블에 속하는 샘플 데이터가 많다는 의미
+그래프에서 확인할 수 있지만, 규칙 생성 로직을 미리 제어하지 않으면 완벽하게 나눠질때까지 자식 노드를 생성 -> 과적합의 우려가 큼.
+즉, 결정 트리의 대부분의 하이퍼 파라미터는 과적합을 방지하는 용도로 만들어짐 .
+
+지니 계수 값 결정 트리는 균일도에 기반해 어떠한 속성을 규칙 조건으로 선택하느냐가 중요한 요건.
+중요한 몇 개의 피처가 명확한 규칙을 만드는 데 크게 기여하며, 모델을 좀 더 간결하고 이상치에 강한 모델을 만들수 있음,
+
+* feature_importances_
+사이킷런은 결정 트리 알고리즘이 학습을 통해 규칙을 정하는 데 있어 피처의 중요한 역할 지표
+ndarray 형태로 값을 반환하며 피처 순서대로 값을 할당. 값이 높을수록 중요도가 높다는 의미
+
+# feature_importances_ 속성을 가져와 피처별로 중요도 값을 매핑하고 이를 막대그래프로 표현해 보자
+
+"""
+import seaborn as sns
+import numpy as np
+%matplotlib inline
+
+# feature importance 추출
+print('Feature importances:\n{0}'.format(np.round(dt_clf.feature_importances_, 3)))
+
+for name, value in zip(iris_data.feature_names, dt_clf.feature_importances_):
+    print('{0} : {1:.3f}'.format(name, value))
+    
+sns.barplot(x = dt_clf.feature_importances_, y = iris_data.feature_names)
+"""
+
+** 결정 트리 과적합(overfitting)
+사이킷런은 분류를 위한 데스트용 데이터를 쉽게 만들수 있도록 datasets -> make_classification() 제공
+
+# 이 함수를 이용해 2개의 피처가 3가지 유형의 클래스 값을 가지는 데이터 세트를 만들고, 이를 그래프 형태로 시각화 해보자
+
+"""
+from sklearn.datasets import make_classification
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+plt.title('3 Class values with 2 features sample data creation')
+
+# 2차원 시각화를 위해서는 피처는 2개, 클래스는 3가지 유형의 분류 샘플 데이터 생성
+X_features, y_labels = make_classification(  n_features = 2, n_redundant = 0
+                                           , n_informative = 2, n_classes = 3, n_clusters_per_class = 1,
+                                             random_state = 0)
+
+plt.scatter(X_features[:, 0], X_features[:, 1], marker='o', c = y_labels, s = 25, edgecolor = 'k')
+"""
+
+# 결정 트리 생성에 별다른 제약이 없도록 하이퍼 파라미터가 디폴트인 Classifier를 학습하고
+  결정 기준 경계를 시각화해 보기
+
+** 결정 트리 실습 - 사용자 행동 패턴 인식 데이터 세트
+
+## -------------------------------------------------------------- ##
+
+03. 앙상블 학습
+여러개의 분류기를 생성하고 , 그 예측을 결합함으로써 보다 정확한 최종 예측을 도출하는 기법
+다양한 분류기의 예측 결과를 결합함으로써 단일 분류기보다 신뢰성이 높은 예측값을 얻는 것
+
+앙상블 학습의 유형은 전통적으로 보팅(voting), 베깅(Bagging), 부스팅(Boosting)의 세 가지로 나눌 수 있음
+이외에도 Stacking을 포함한 다양한 앙상블 방법이 있음
+
+* Voting vs Bagging vs Boosting
+Voting   : 일반적으로 다른 알고리즘을 가진 분류기를 결합. 
+	 같은 데이터 세트에 대해 학습하고 예측한 결과를 가지고 보팅을 통해 최종 예측
+
+Bagging : 각각의 분류기가 모두 같은 유형의 알고리즘이지만, 데이터 샘플링을 다르게 가져감. 대표적으로 randomForest이 있음
+	 개별 Classifier에게 데이터를 샘플링해서 추출하는 방식을 Bootstrapping 이라고 함.
+	 교차 검증이 중복된 데이터를 허용하지 않는 반면, Bagging은 중복을 허용
+
+Boosting : 여러 개의 분류기가 순차적으로 학습을 수행하되, 
+	 앞에서 학습한 분류기가 예측이 틀린 데이터에 대해서는 올바르게 예측할 수 있도록 다음 분류기에게는 가중치(Weight)를 부여하면서 학습과 예측을 진행
+	 계속해서 분류기에게 가중치를 부스팅하면서 학습을 진행
+	예측 성능이 뛰어나 앙상블 학습을 주도하고 있으며, 대표적인 부스팅 모듈로 GrdientBoost, XGBoost, LightGBM이 있음
+
+Stacking  : 여러 가지 다른 모델의 예측 결괏값을 다시 학습 데이터로 만들어
+	  다른 모델로 재학습시켜 결과를 예측하는 방법
+
+** 보팅 유형 : 하드 보팅과 소프트 보팅
+하드 보팅 : 다수결 원칙과 비슷
+ 	  예측한 결괏값들중 다수의 분류기가 결정한 예측값을 최종 보팅 결괏값으로 선정하는 것
+
+소프트 보팅 : 분류기들의 레이블 값 결정 확률을 모두 더하고 이를 평균하여 이들 중 확률이 가장 높은 레이블 값을
+	     최종 보팅 결괏값으로 선정
+	    ex) 분류 1의 확률 값을 모두 더한 후 평균, 분류 2의 확률 값을 모두 더한 후 평균을 내어 더 큰 쪽으로 voting. 
+
+-> 일반적으로 소프트 보팅 값이 사용됨
+
+사이킷런은 보팅 방식의 앙상블을 구현한 VotingClassifier 클래스 제공
+
+## 보팅 분류기 만들기
+## 위스콘신 유방암 데이터 세트를 예측 분석해보자.
+
+유방암의 악성종양, 양성종양 여부를 결정하는 이진 분류 데이터 세트.
+종양의 크기, 모양 등의 형태와 관련한 많은 피처를 가지고 있음
+
+사이킷런은  load_breast_cancer() 를 통해 자체에서 위스콘신 유방암 데이터를 생성할 수 있음.
+KNN, Logistic 회귀 두 모형의 앙상블 기법을 사용해보자
+
+* VotingClassifier()
+사이킷런의 보팅 방식의 앙상블을 구현한 클래스
+VotingClassifier 클래스는 주요 생성 인자로 estimator, voting 값을 입력 받음
+
+estimator : 리스트 값으로 보팅에 사용될 여러 개의 Classifier 객체들을 튜플 형식으로 입력 받으며 voting은
+	  'hard'시 하드 보팅, 'soft'시 소프트 보팅 방식을 적용하라는 의미(default : hard)
+
+"""
+
+# 사이킷런은  load_breast_cancer() 를 통해 자체에서 위스콘신 유방암 데이터를 생성할 수 있음.
+# KNN, Logistic 회귀 두 모형의 앙상블 기법을 사용해보자
+import pandas as pd
+
+from sklearn.ensemble import VotingClassifier            # 앙상블을 위한 VotingClassifer
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets  import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+cancer = load_breast_cancer()
+data_df = pd.DataFrame(cancer.data, columns = cancer.feature_names)
+data_df.head(3)
+
+lr_clf  = LogisticRegression()
+knn_clf = KNeighborsClassifier(n_neighbors= 8)
+
+vo_clf = VotingClassifier(estimators=[('LR', lr_clf), ('KNN', knn_clf)], voting = 'soft')
+X_train, X_test, y_train, y_test = train_test_split(cancer.data, cancer.target, test_size = 0.2, random_state = 156)
+
+# VotingClassifier 학습/예측/평가
+vo_clf.fit(X_train, y_train)
+pred = vo_clf.predict(X_test)
+
+print('Voting 분류기 정확도 : {0:.4f}'.format(accuracy_score(y_test, pred)))
+
+# 개별 모델의 학습/예측/평가
+classifiers = [lr_clf, knn_clf]
+for classifier in classifiers:
+    classifier.fit(X_train, y_train)
+    pred = classifier.predict(X_test)
+    class_name = classifier.__class__.__name__
+    print('{0} 정확도: {1:4f}'.format(class_name, accuracy_score(y_test, pred)))
+
+"""
+
+보팅으로 여러 개의 기반 분류기를 결합한다고 해서 무조건 기반 분류기보다 예측 성능이 향상되지는 않음 
+데이터의 특성과 분포 등 다양한 요건에 따라 기반 분류기 중 가장 좋은 분류기의 성능이 보팅했을 떄 보다 더 나을 수도 있음
+
+## -------------------------------------------------------------- ##
+
+04. 랜덤 포레스트
+랜덤 포레스트의 기반 알고리즘은 '결정 트리'
+(랜포 뿐만 아니라 부스팅 기반의 다양한 앙상블 알고리즘 역시 대부분 결정 트리 기반 알고리즘을 기반 알고리즘으로 채택하고 있음)
+
+여러 개의 결정 트리 분류기가 전체 데이터에서 배깅 방식으로 각자의 데이터를
+샘플링해 개별적으로 학습을 수행한 뒤, 최종적으로 모든 분류기가 보팅을 통해 예측 결정을 하게 됨
+
+* 부트스트래핑(Bootstrapping) - 중요!
+여러 개의 작은 데이터 세트를 임의로 만들어 개별 평균의 분포도를 측정하는 등의 목적을 위한 샘플링 방식을 지칭
+통계학에서 여러 개의 작은 데이터 셋을 임의로 만들어 개별 평균의 분포도를 측정하는 등의 목적을 위한 샘플링 방식을 지칭(중심 극한 정리 처럼 ..)
+
+서브세트 데이터셋 수는 전체 데이터셋 수와 동일 **(중요) 하지만 개별 데이터가 충접되어 만들어짐
+
+ex) n_estimator = 3으로 부여 한 경우, 
+		-> 1,2,3,3,3,5,6,8,8,9
+1,2,3,4,5,6,7,8,9,10   -> 1,3,4,5,6,8,8,9,9,10 
+		-> 1,1,3,4,4,5,6,6,9,9
+
+
+이렇게 데이터가 중첩된 개별 데이터 세트에 결정 트리 분류기를 각각 적용하는 것이 랜덤 포레스트임
+사이킷런은 RandomForestClassifier 클래스를 통해 랜덤 포레스트 기반의 분류를 지원
+
+"""
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')
+X_train, X_test, y_train, y_test = get_human_dataset()
+
+rf_clf = RandomForestClassifier(random_state = 0)
+rf_clf.fit(X_train, y_train)
+pred      = rf_clf.predict(X_test)
+accuracy = accuracy_score(y_test, pred)
+print('랜덤 포레스트 정확도 {0:.4f}'.format(accuracy))
+"""
+
+** 랜덤 포레스트 하이퍼 파라미터 튜닝
+트리 기반 앙상블 알고리즘의 단점은 하이퍼 파라미터가 너무 많고, 그로 인해서 튜닝을 위한 시간이 많이 소요됨
+그나마 랜포는 적은편!
+
+파라미터
+- n_estimators  : 랜포에서 결정 트리 개수를 지정. 디폴트 10개. 늘릴수록 성능은 좋아질 수 있으나, 수행 시간이 오래 걸리는 점
+- max_features  : 결정 트리에 사용된 max_features 파라미터와 같음. but RandomForestClassifier의 기본 max_feature는 'None'이 아니라 'auto', 즉 'sqrt'와 같음	
+   	          즉, 랜포를 분할하는 피처를 참조할 때 전체 피처가 아니라 sqrt(총피처개수) 만큼 참조
+- max_depth, min_sample_leaf와 같이 결정 트리에서 과적합을 개선하기 위해 사용되는 파라미터가 랜포에도 똑같이 적용될 수 있음
+
+GridSearchCV를 이용해 하이퍼 파라미터 튜닝 가능
+
+"""
+from sklearn.model_selection import GridSearchCV
+params = {
+    'n_estimators': [100],
+    'max_depth' : [6, 8, 10, 12],
+    'min_samples_leaf' : [8, 12, 18],
+    'min_samples_split' : [8, 16, 20]
+}
+
+rf_clf  = RandomForestClassifier(random_state = 0, n_jobs = -1) # n_jobs param 수행시 모든 CPU 코어를 사용할 수 있음
+grid_cv = GridSearchCV(rf_clf, param_grid = params, cv = 2, n_jobs = -1)
+grid_cv.fit(X_train, y_train)
+
+"""
+
+결정 트리와 동일하게 feature_importances_ 속성을 이용해 알고리즘이 선택한 피처의 중요도를 알 수 있음
+
+## -------------------------------------------------------------- ##
+
+05. GBM(Gradient Boosting Machine)
+부스팅 알고리즘은 여러 개의 약한 학습기를 순차적으로 학습-예측하면서 잘못 예측한 데이터에 가중치를 부여해 오류를 개선해 나가면서
+학습하는 방식
+
+부스팅의 대표적인 구현은 AdaBoost와 Gradient Boost가 있음(GBM은 Gradient Boost 중 하나!)
+AdaBoost는 오류 데이터에 가중치를 부여하면서 부스팅을 진행하는 대표적인 알고리즘
+
+책 216P 그림 참조! ( 중요)
+핵심은 step 마다 오류 데이터에 가중치를 부여하고 해당 오류를 잘 맞출 수 있는 모델을 다시 
+갱신하고, 이렇게 단계 단계 마다 만든 모델을 최종적으로 앙상블하여 사용하는 개념.
+
+개별 약한 학습기는 각각 가중치를 부여해 결합
+예를 들어 첫 번째 학습기에 가중치 0.3, 두번째 0.5, 세번째 0.8dmf 부여한 후 모두 결합해
+예측을 수행!
+why? 각각 개별 학습기 마다 판단 기준이 다르므로, 가중치를 부여해서 최종 판단 기준을 만들어 내야함.
+
+GBM(Gradient Boosting Machine)도 아다부스트와 비슷하나, 경사하강법을 이용하는 것이 큰 차이!
+경사하강법은 오류 값인 실제값 - 예측값을 줄이는 방향으로 계속적으로 진행하는 방식을 말함.
+
+GBM은 분류는 물론, 회귀도 가능
+사이킷런은 GBM 기반의 분류를 위해서 GradientBoostingClassifier 클래스 제공
+
+# 사이킷런의 GBM을 이용해 사용자 행동 데이터 세트를 예측 분류 해보자
+# GBM으로 걸리는 수행 시간이 얼마나 걸리는지 확인해보자
+
+"""
+# 사이킷런의 GBM을 이용해 사용자 행동 데이터 세트를 예측 분류 해보자
+# GBM으로 걸리는 수행 시간이 얼마나 걸리는지 확인해보자
+from sklearn.ensemble import GradientBoostingClassifier
+import time
+import warnings
+warnings.filterwarnings('ignore')
+
+X_train, X_test, y_train, y_test = get_human_dataset()
+start_time = time.time()
+gb_clf = GradientBoostingClassifier(random_state= 0)
+
+gb_clf.fit(X_train, y_train)
+gb_pred     = gb_clf.predict(X_test)
+gb_accuracy = accuracy_score(y_test, gb_pred)
+
+print('GBM 정확도 : {0:.4f}'.format(gb_accuracy))
+print('GBM 수행 시간: {0:.1f} 초'.format(time.time() - start_time))
+
+"""
+
+일반적으로 GBM이 랜덤 포레스트보다는 예측 성능이 조금 뛰어난 경우가 많음
+약한 학습기의 순차적인 예측 오류 보정을 통해 학습을 수행하므로 멀티 CPU 코어 시스템을 사용하더라도 병렬처리 지원 X
+
+** GBM 하이퍼 파라미터 튜닝
+n_estimator, max_depth, max_feature와 같은 트리 기반 자체의 파라미터는 동일
+- loss : 경사 하강법에서 사용할 비용 함수 지정. 특별한 이유가 없으면 'deviance' 그대로 적용
+- learning_rate : GBM이 학습을 진행할 때마다 적용하는 학습률. 0~1 사이의 값 지정 가능. 기본값 0.1
+	         딥러닝에서 사용되는 LR과 동일
+- subsample : weak learner가 학습에 사용하는 데이터의 샘플링 비율. 
+	      기본값은 1이며, 전체 데이터를 기반으로 학습한다는 의미. 과적합 우려시 줄여서 사용!
+
+GridSearchCV를 이용해서 하이퍼 파라미터 튜닝이 가능한데, 시간이 오래 걸릴 수 있음!
+간략하게 n_estimator를 100, 500
+	learning_rate를 0.05, 0.1로만 제약
+
+교차검증도 2개로만 setting 해서 해보자
+이래도 약 1시간 정도 걸림! 
+
+"""
+from sklearn.model_selection import GridSearchCV
+params = {
+    'n_estimators':[100, 500],
+    'learning_rate' : [0.05, 0.1]
+}
+
+grid_cv = GridSearchCV(gb_clf, param_grid = params, cv = 2, verbose = 1)
+grid_cv.fit(X_train, y_train)
+print('최적 하이퍼 파라미터\n', grid_cv.best_params)
+print('최고 예측 정확도: {0:.4f}'.format(grid_cv.best_score_))
+
+# GridSearchCV 를 이용해 최적으로 학습된 estimator 수행
+gb_pred = grid_cv.best_estimator_.predict(X_test)
+gb_accuracy = accuracy_score(y_test, gb_pred)
+print('GBM 정확도: {0:.4f}'.format(gb_accuracy))
+""" 
+
+GBM은 과적합에도 강한 뛰어난 예측 성능을 가진 알고리즘. 하지만 수행 시간이 오래 걸린다는 단점
+GBM이 처음 소개된 이후 많은 알고리즘이 GBM 기반으로 새롭게 만들어지고 있음
+이중 머신러닝 세계에서 가장 각광 받고 있는 두 개의 그래디언트 부스팅 기반 ML 패키지는,
+"XGBoost", "LightGBM" 임!!!! 
+
+## -------------------------------------------------------------- ##
+
+06.XGBoost(eXtra Gradient Boost)
+트리 기반 앙상블 학습에서 각광받고 있는 알고리즘 중 하나. 
+압도적인 차이는 아니지만, 성능적인 우위를 가지고 있음. 
+
+* XGBoost의 특징
+XGBoost는 GBM에 기반하고 있지만, GBM의 단점인 느린 시간 해결 
+과적합 규제(regularization) 부재 등의 문제를 해결
+병렬 CPU 환경에서 병렬 학습 가능해 기존 GBM보다 빠르게 학습을 완료할 수 있음
+
+* XGBoost의 주요 장점
+1. 뛰어난 예측 성능
+
+2. GBM 대비 빠른 수행 시간. 
+   병렬 CPU 처리가 가능함. 비교 대비 빠르다는 것이지 엄청 빠른 것은 아님
+
+3. 과적합 규제(regularization) 
+   GBM은 없는 반면, XGBoost는 자체에 과적합 규제가 들어가 있음
+
+4. 나무 가지치기(Tree pruning)
+   일반적으로 GBM은 분할 시 부정 손실이 발생하면 분할을 더 이상 수행하지 않지만, 이러한 손실도 지나치게 많은 분할 발생
+   XGBoost도 max_depth 파라미터로 분할 깊이를 조정하기도 하지만, tree pruning으로 더 이상 긍정 이득이 없는 분할을 가지치기 해서 분할 수를 더 줄이는 추가적인 장점을 가지고 있음
+
+5. 자체 내장된 CV
+   XGBoost는 반복 수행시 마다, 내부적으로 학습 데이터 세트와 평가 데이터 세트에 대한 교차 검증 수행
+   지정된 반복 횟수가 아니라 교차 검증을 통해 평가 데이터 세트의 평가 값이 최적화 되면 반복을 중간에 멈출 수 있는 조기 중단 기능이 있음
+
+6. 결손값 자체 처리
+   XGBoost는 결손값을 자체 처리 할 수 있는 기능을 가지고 있음
+
+* XGBoost 패키지
+핵심 라이브러리는 C/C++로 구현되어 있음
+XGBoost 개발 그룹은 파이썬에서도 XGBoost를 구동할 수 있도록 파이썬 패키지 제공
+
+사이킷런 Wrapper Class 제공
+XGBClassifier, XGBRegressor class 제공. 이를 사용하면, fit, predict와 같은 표준 사이킷런 프로세스 및 다양한 유틸리티 활용 가능.
+
+초기의 독자적인 XGBoost framework 기반의 XGBoost -> 파이썬 래퍼 XGBoost 모듈. 
+						고유의 API와 하이퍼 파라미터를 사용
+
+사이킷런과 연동되는 모듈                                     -> 사이킷런 래퍼 XGBoost 모듈
+						다른 estimator와 동일
+
+
+* XGBoost 설치
+conda install -c anaconda py -xgboost
+
+** 파이썬 래퍼 XGBoost 하이퍼 파라미터
+사이킷런 XGBoost 하이퍼 파라미터와 조금 다름을 유의하면서 확인하자
+
+유형별 하이퍼 파라미터
+- 일반 파라미터              : 일반적으로 실행시 스레드의 개수나 slient 모드 등의 선택을 위한 파라미터로 바꾸는 경우는 잘 없음
+- 부스터 파라미터           : 트리 최적화, 부스팅, regularization 등과 같은 파라미터 등을 지칭
+- 학습 테스크 파라미터    : 학습 수행 시의 객체 함수, 평가를 위한 지표 등을 설정하는 파라미터
+
+* 일반 파라미터
+- booster : gbtree 또는 gblinear(linear Model) 선택. 디폴트는 gbtree
+- silent    : 디폴트는 0이며, 출력 메세지를 나타내고 싶지 않을 경우 1로 설정
+- nthread : CPU의 실행 스레드 개수를 조정. 디폴트 CPU의 전체 스레드를 다 사용하는 것. 멀티코어/스레드 CPU 시스템에서
+	  전체 CPU를 다 사용하지 않고 CPU만 사용해 ML 애플리케이션을 구동하는 경우에 변경
+
+* 주요 부스터 파라미터
+- eta[default = 0.3, alias : learning_rate]: GBM 학습률과 같은 파라미터.  0에서 1사이의 값을 지정.
+				  부스팅 스텝을 반복적으로 수행할 때 업데이트 되는 학습률 값
+				  파이썬 래퍼 기반의 xgboost를 사용할 경우 디폴트는 0.3
+				  사이킷런은 0.1. 보통은 0.1~0.2 사이의 값을 선호
+
+- num_boost_rounds : GBM의 n_estimator와 같은 파라미터
+- min_child_weight[default = 1] : GBM의 min_child_leaf와 유사(똑같지는 않음). 과적합을 조절하기 위해서 사용
+- gamma [dafault = 0, alias = min_split_loss] : 트리의 리프 노드를 추가적으로 나눌지 결정할 최소 손실 감소 값.
+				           해당 값보다 큰 손실(loss)이 감소된 경우에 리프 노드를 분리. 
+				           값이 클수록 과적합 감소 효과가 있음
+
+- max_depth [default = 6] : 트리 기반 알고리즘의 max_depth와 같음.
+		           0을 지정하면 깊이에 제한이 없음
+		           Max_depth가 높으면 특정 피처 조건에 특화되어 룰 조건이 만들어지므로 과적합 가능성이 높아지며 보통은 3 ~ 10 사이의 값을 적용
+
+- sub_sample[default = 1] : GBM의 subsample과 동일. 트리가 커져서 과적합되는 것을 제어하기 위해 데이터를 샘플링하는 비율을 지정
+		           sub_sample = 0.5로 지정하면 전체 데이터의 절반을 트리를 생성하는 데 사용
+		           일반적으로 0.5 ~ 1 사이의 값을 선호
+
+- colsample_bytree[default = 1] : GBM의 max_features와 유사. 트리 생성에 필요한 피처를 임의로 샘플링 하는데 사용
+			      매우 많은 피처가 있는 경우 과적합을 조정하는 적용
+
+- lambda [default = 1, alias : reg_lambda ] : L2 Regularization 적용 값. 피처 개수가 많을 경우 적용 검토
+- alpha [default = 0, alias : reg_alpha ]      : L1 Regularization 적용 ㄱ값. 피처 개수가 많을 경우 적용 검토
+- scale_pos_weight[default = 1] : 특정 값으로 치우친 비대칭한 클래스로 구성된 데이터 세트의 균형을 유지하기 위한 파라미터
+
+* 학습 태스크 파라미터
+
+- objective : 최솟값을 가져야할 손실 함수를 정의.  XGBoost는 많은 유형의 손실 함수를 사용 가능. 이진 분류인지, 다중 분류인지에 따라 달라짐
+- binary:logistic : 이진 분류일 때 적용
+- multi:softmax  : 다중 분류일 때 적용. 해당 손실함수를 사용할 때는 레이블 클래스의 개수인 num_class 파라미터를 지정해야 함
+- multi:softprob : multi:softmax와 유사하나 개별 레이블 클래스에 해당하는 예측 확률을 반환
+- eval_ metric : 검증에 사용되는 함수를 정의. 기본값이 회귀인 경우 rmse, 분류일 경우 error
+
+* 종류 
+rmse : Root Mean Square Error 
+mae : Mean Absolute Error 
+logloss : Negative log-likelihood  
+error : Binary classification error rate(0.5 threshold)
+merror : Multiclass classification error rate
+mlogloss : Multiclass logloss
+auc : Area under the curve
+
+뛰어난 알고리즘 일수록 파라미터를 튜닝할 필요가 적음
+파라미터 튜닝에 들이는 공수 대비 성능 향상 효과가 높지 않은 경우가 대부분
+
+파라미터를 튜닝하는 경우의 수는 여러 가지 상황에 따라 달라짐
+-> 피처의 수가 매우 많거나 피처 간 상관하는 정도가 많거나 데이터 세트에 따라 여러 가지 특성이 있을 수 있음
+
+* 과적합 문제가 심각한 경우
+- eta 값을 낮춤
+- max_depth 값을 낮춤
+- min_child_weight 값을 높임
+- gamma 값을 높임
+- subsample, colsample_bytree 를 조정하는 것도 도움이 될 수 있음
+
+XGBoost는 자체적으로, CV, 성능평가, 피처 중요도 등의 시각화 기능을 가지고 있음
+XGBoost는 기본 GBM에서 부족한 다른 여러 가지 성능 향상 기능이 있음
+- Early Stopping 기능
+
+** 파이썬 래퍼 XGBoost 적용 - 위스콘신 유방암 예측 예제
+위스콘신 유방암 데이터 세트
+종양의 크기, 모양 등의 다양한 속성값을 기반으로 악성 종양인지, 양성 종양인지를 분류한 데이터 세트
+종양은 양성 종양, 악성 종양으로 구분할 수 있으며, 양성 종양이 비교적 성장 속도가 느리고 전이되지 않는 것에 반해, 
+악성 종양은 주위 조직에 침입하면서 빠르게 성장하고 신체 각 부위에 확산되거나 전이되어 생명을 위협
+
+XGBoost를 통해 악성종양인지, 양성종양인지 예측해보자
+
+xgboost 모듈을 로딩하고 xgb로 명명해보자
+xgboost 패키지는 피처의 중요도를 시각화해주는 모듈인 plot_importance 를 함께 제공
+
+
+"""
+
+
+
+""" 
 
 
 

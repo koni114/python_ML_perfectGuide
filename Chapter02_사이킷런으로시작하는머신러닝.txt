@@ -138,7 +138,7 @@ fold방식은 stratifiedFold 방식 사용
 # estimator :  model object
 # X : 피처 데이터 세트
 # y : 레이블 데이터 세트
-# scoring : 성능 평가 지표
+# scoring : 성능 평가 지표 ex) accuracy..
 # cv : 교차 검증 수
 cross_val_score(estimator
                 , X

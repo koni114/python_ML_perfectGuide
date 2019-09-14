@@ -184,6 +184,7 @@ array2d = np.array([8, 12], [7, 1])
 sort_array2d_axis0 = np.sort(array2d, axis = 0)
 print("sort_array2d_axis0 :", sort_array2d_axis0)
 
+# axis 0 : 열, axis 1 : 행
 sort_array2d_axis1 = np.sort(array2d, axis = 1)
 print("sort_array2d_axis1  :", sort_array2d_axis1)
 

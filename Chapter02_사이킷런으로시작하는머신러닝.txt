@@ -133,6 +133,8 @@ skf.split(iris_df, iris_df['label']) 사용!
 
 * cross_val_score
 교차 검증을 좀 더 편리하게 수행할 수 있게 해주는 API 제공
+fold방식은 stratifiedFold 방식 사용
+
 
 # X : 피처 데이터 세트
 # y : 레이블 데이터 세트
